@@ -53,7 +53,7 @@ class Driver:
     def set_setpoint(self, value: float) -> str:
         value = float(value)
         # Set STM SetPoint. Value should be in unit of A. If polarity is inversed, Bias is also inversed.
-        if np.abs(value) > 500e-12 or np.abs(value) < 50e-12:
+        if np.abs(value) > 2000e-12 or np.abs(value) < 50e-12:
             print("SetPoint range over")
             return "Error"
         print(f"STM SetPoint is set to {value} (A)")
@@ -74,4 +74,12 @@ class Driver:
 
     def get_save_index(self) -> str:
         self.response = self.query("GetSWSubItemParameter, Scan Area Window, MeasureSave, File Name Index\n")
+        return self.response
+
+    def get_save_name(self) -> str:
+        self.response = self.query("GetSWSubItemParameter, Scan Area Window, MeasureSave, File Name\n")
+        return self.response
+
+    def get_save_path(self) -> str:
+        self.response = self.query("GetSWSubItemParameter, Scan Area Window, MeasureSave, Save Path\n")
         return self.response

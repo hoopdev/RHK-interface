@@ -8,7 +8,7 @@ from ctypes import *
 class Listener:
     IP_Address: str
     BUFFER_SIZE: int = 2048
-    FORMAT: dict = {
+    DATA_FORMAT = {
         'packet_len': c_uint32,
         'timestamp': c_uint64,
         'interval': c_float,
@@ -21,7 +21,7 @@ class Listener:
         'data': c_int32
     }
     offset: int = dataclasses.field(init=False, default=None)
-    length: dict = {
+    length = {
         'packet_len': 4,
         'timestamp': 8,
         'interval': 4,
@@ -33,14 +33,14 @@ class Listener:
         'data_size': 4,
         'data': None,
     }
-    result: dict = dataclasses.field(init=False, default=None)
+    result: dict = dataclasses.field(init=False, default_factory=dict)
     response_address: str = dataclasses.field(init=False, default=None)
     value: float = dataclasses.field(init=False, default=None)
 
     def parse(self) -> None:
         self.offset = 0
         self.result = {}
-        for item, item_format in self.FORMAT.items():
+        for item, item_format in self.DATA_FORMAT.items():
             if self.length[item] != None:
                 self.result[item] = np.frombuffer(self.buffer, dtype=item_format, count=self.length[item], offset=self.offset)[0]
                 self.offset += self.length[item]

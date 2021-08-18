@@ -17,6 +17,7 @@ class Plotter:
     display_flag: bool
     path_dir: str
     file_prefix: str
+    file_prefix_STS: str
     file_index: int = dataclasses.field(init=False, default=None)
     path_file: str = dataclasses.field(init=False, default=None)
     data_image: Dataset = dataclasses.field(init=False, default=None)
@@ -24,18 +25,18 @@ class Plotter:
     data_topo: DataArray = dataclasses.field(init=False, default=None)
     data_didv: DataArray = dataclasses.field(init=False, default=None)
     data_spec: DataArray = dataclasses.field(init=False, default=None)
-    spec_list: List[np.ndarray] = dataclasses.field(init=False, default_factory=list)
-    attrs_image: dict = dataclasses.field(init=False, default=None)
-    attrs_spec: dict = dataclasses.field(init=False, default=None)
+    spec_list: list = dataclasses.field(init=False, default_factory=list)
+    attrs_image: dict = dataclasses.field(init=False, default_factory=dict)
+    attrs_spec: dict = dataclasses.field(init=False, default_factory=dict)
     bias_image: float = dataclasses.field(init=False, default=None)
     bias_mod_image: float = dataclasses.field(init=False, default=None)
     current_image: float = dataclasses.field(init=False, default=None)
-    xaxis_image: dict = dataclasses.field(init=False, default=None)
-    yaxis_image: dict = dataclasses.field(init=False, default=None)
-    xaxis_spec: dict = dataclasses.field(init=False, default=None)
-    yaxis_spec: dict = dataclasses.field(init=False, default=None)
-    colorbar_topo: dict = dataclasses.field(init=False, default=None)
-    colorbar_didv: dict = dataclasses.field(init=False, default=None)
+    xaxis_image: dict = dataclasses.field(init=False, default_factory=dict)
+    yaxis_image: dict = dataclasses.field(init=False, default_factory=dict)
+    xaxis_spec: dict = dataclasses.field(init=False, default_factory=dict)
+    yaxis_spec: dict = dataclasses.field(init=False, default_factory=dict)
+    colorbar_topo: dict = dataclasses.field(init=False, default_factory=dict)
+    colorbar_didv: dict = dataclasses.field(init=False, default_factory=dict)
     spec_num: int = dataclasses.field(init=False, default=None)
     spec_average_num: int = dataclasses.field(init=False, default=None)
     trace_topo: FigureWidget = dataclasses.field(init=False, default=None)
@@ -45,6 +46,9 @@ class Plotter:
 
     spec_location_x: np.ndarray = dataclasses.field(init=False, default=None)
     spec_location_y: np.ndarray = dataclasses.field(init=False, default=None)
+    width_single = 600
+    width_double = 1250
+    height = 600
 
     def __post_init__(self) -> None:
         if not os.path.exists(self.path_dir):
@@ -52,13 +56,21 @@ class Plotter:
         else:
             return
 
-    def load_file(self, data_index: int) -> Tuple(Dataset, Dataset):
+    def load_file(self, data_index: int) -> tuple:
         self.file_index = data_index
         self.path_file = os.path.join(self.path_dir, self.file_prefix + str(self.file_index).zfill(4) + '.sm4')
         if not os.path.exists(self.path_file):
             raise ValueError('No such data file')
         self.data_image, self.data_line = spym.load(self.path_file, datatype_separate=True)
         return self.data_image, self.data_line
+
+    def load_file_STS(self, data_index: int) -> tuple:
+        self.file_index = data_index
+        self.path_file = os.path.join(self.path_dir, self.file_prefix_STS + str(self.file_index).zfill(4) + '.sm4')
+        if not os.path.exists(self.path_file):
+            raise ValueError('No such data file')
+        self.data_line = spym.load(self.path_file, datatype_separate=False)
+        return self.data_line
 
     def load_image(self) -> None:
         self.data_topo = self.data_image.Topography_Forward
@@ -191,7 +203,7 @@ class Plotter:
             x=self.data_didv.x,
             y=self.data_didv.y,
             z=self.data_didv.values,
-            colorscale="Greys",
+            colorscale="Gray",
             name='dI/dV',
             zsmooth='best'
         )
@@ -229,12 +241,44 @@ class Plotter:
                 showlegend=False))
         return
 
+    def get_trace_spec2(self, average_num: int, index_ext: int) -> None:
+        self.spec_average_num = average_num
+        self.load_spec()
+        self.trace_spec = []
+        self.trace_spec_location = []
+        for i in range(self.spec_num):
+            self.trace_spec.append(go.Scatter(
+                x=self.data_spec.x.values,
+                y=self.spec_list[i],
+                mode='lines',
+                name="Point" + str(index_ext),
+                marker_color=str(px.colors.qualitative.Plotly[index_ext]),
+                showlegend=True,
+            ))
+
+            self.trace_spec_location.append(go.Scatter(
+                x=[self.spec_location_x[i]],
+                y=[self.spec_location_y[i]],
+                mode='markers+text',
+                text=['Point' + str(index_ext)],
+                textposition="middle right",
+                name="Point" + str(index_ext),
+                marker=dict(
+                    color=str(px.colors.qualitative.Plotly[index_ext]),
+                    size=15,
+                    line=dict(
+                        width=2
+                    ),
+                ),
+                showlegend=False))
+        return
+
     def fig_topo(self, data_index: int) -> FigureWidget:
         fig = make_subplots(rows=1, cols=1,)
         self.load_file(data_index)
         self.get_trace_topo()
         fig.add_trace(self.trace_topo, row=1, col=1,)
-        fig.update_layout(title_text=self.title, xaxis=self.xaxis_image, yaxis=self.yaxis_image, height=600, width=600,)
+        fig.update_layout(title_text=self.title, xaxis=self.xaxis_image, yaxis=self.yaxis_image, height=self.height, width=self.width_single,)
         fig.update_traces(colorbar=self.colorbar_topo, row=1, col=1)
         if self.display_flag:
             fig.show()
@@ -247,7 +291,7 @@ class Plotter:
         fig.add_trace(self.trace_topo, row=1, col=1,)
         self.get_trace_didv()
         fig.add_trace(self.trace_didv, row=1, col=2,)
-        fig.update_layout(title_text=self.title, xaxis=self.xaxis_image, yaxis=self.yaxis_image, xaxis2=self.xaxis_image, yaxis2=self.yaxis_image, height=600, width=1250,)
+        fig.update_layout(title_text=self.title, xaxis=self.xaxis_image, yaxis=self.yaxis_image, xaxis2=self.xaxis_image, yaxis2=self.yaxis_image, height=self.height, width=self.width_double,)
         self.colorbar_topo['x'] = 0.44
         fig.update_traces(colorbar=self.colorbar_topo, row=1, col=1)
         fig.update_traces(colorbar=self.colorbar_didv, row=1, col=2)
@@ -267,7 +311,24 @@ class Plotter:
         for i in range(self.spec_num):
             fig.add_trace(self.trace_spec_location[i], row=1, col=1,)
             fig.add_trace(self.trace_spec[i], row=1, col=2,)
-        fig.update_layout(title_text=self.title, xaxis=self.xaxis_image, yaxis=self.yaxis_image, xaxis2=self.xaxis_spec, yaxis2=self.yaxis_spec, height=600, width=1250, template='plotly_white')
+        fig.update_layout(title_text=self.title, xaxis=self.xaxis_image, yaxis=self.yaxis_image, xaxis2=self.xaxis_spec, yaxis2=self.yaxis_spec, height=self.height, width=self.width_double, template='plotly_white')
+        if self.display_flag:
+            fig.show()
+        return fig
+
+    def fig_multi_spectra(self, data_index_spec_list: list, data_index_image: int, average_num: int) -> FigureWidget:
+        fig = make_subplots(rows=1, cols=2, subplot_titles=('Location', 'dI/dV'), horizontal_spacing=0.15)
+        self.load_file(data_index_image)
+        self.get_trace_topo(offset=True)
+        fig.add_trace(self.trace_topo, row=1, col=1,)
+        self.colorbar_topo['x'] = 0.44
+        fig.update_traces(colorbar=self.colorbar_topo, row=1, col=1)
+        for i, data_index_spec in enumerate(data_index_spec_list):
+            self.load_file_STS(data_index_spec)
+            self.get_trace_spec2(average_num, i)
+            fig.add_trace(self.trace_spec_location[0], row=1, col=1,)
+            fig.add_trace(self.trace_spec[0], row=1, col=2,)
+        fig.update_layout(title_text=self.title, xaxis=self.xaxis_image, yaxis=self.yaxis_image, xaxis2=self.xaxis_spec, yaxis2=self.yaxis_spec, height=self.height, width=self.width_double, template='plotly_white')
         if self.display_flag:
             fig.show()
         return fig
