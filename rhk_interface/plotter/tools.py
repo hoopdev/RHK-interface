@@ -19,6 +19,6 @@ def correct_drift(image1, image2):
     y_array = image1.y.values
     index = np.array([x_array.shape[0] / 2 - 1, y_array.shape[0] / 2 - 1])
     correlation_image = c2d(edge(image1.values), edge(image2.values), mode='same')
-    index = np.fliplr(np.array(np.unravel_index(np.argmax(correlation_image), correlation_image.shape))) - index
+    index = np.flipud(np.array(np.unravel_index(np.argmax(correlation_image), correlation_image.shape))) - index
     delta = np.array([(x_array.max() - x_array.min()) / x_array.shape[0], (y_array.max() - y_array.min()) / y_array.shape[0]])
     return delta * index
