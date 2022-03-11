@@ -1,4 +1,5 @@
 import dataclasses
+from typing import List, Tuple
 import socket
 import numpy as np
 from ctypes import *
@@ -36,6 +37,7 @@ class Listener:
     result: dict = dataclasses.field(init=False, default_factory=dict)
     response_address: str = dataclasses.field(init=False, default=None)
     value: float = dataclasses.field(init=False, default=None)
+    value_list: List[float] = dataclasses.field(init=False, default_factory=list)
 
     def parse(self) -> None:
         self.offset = 0
@@ -64,3 +66,12 @@ class Listener:
         self.parse()
         self.value = np.mean(self.result['data']) * self.result['gain']
         return self.value
+
+    def fetch_all_value(self, port: int) -> list:
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.bind((self.IP_Address, port))
+        self.buffer, self.response_address = s.recvfrom(self.BUFFER_SIZE)
+        s.close()
+        self.parse()
+        self.value_list = self.result['data'] * self.result['gain']
+        return self.value_list

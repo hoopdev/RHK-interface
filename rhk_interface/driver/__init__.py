@@ -12,7 +12,7 @@ class Driver:
     BUFFER_SIZE: int = 4096
     response: str = dataclasses.field(init=False, default=None)
     RETRY = 5
-    BIAS_LIMIT = (0.1, 0.5)  # (V)
+    BIAS_LIMIT = (0.01, 1)  # (V)
     CURRENT_LIMIT = (50e-12, 2000e-12)  # (A)
     IMAGE_SCAN_PROCEDURE = 'dI-dV Image Map 5.0'
 
@@ -32,6 +32,7 @@ class Driver:
         data = self.s.recv(self.BUFFER_SIZE)
         self._disconnect()
         self.response = data.decode()
+        time.sleep(0.1)
         return self.response
 
     def get_value(self, message: str) -> float:
